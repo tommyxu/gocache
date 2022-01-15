@@ -15,3 +15,8 @@ type StoreInterface interface {
 	Clear(ctx context.Context) error
 	GetType() string
 }
+
+type StoreInterfaceEx interface {
+	MGet(ctx context.Context, keys interface{}) (interface{}, error)
+	MSet(ctx context.Context, keys, objects interface{}, options *Options) error
+}

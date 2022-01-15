@@ -19,12 +19,14 @@ const (
 // Cache represents the configuration needed by a cache
 type Cache struct {
 	codec codec.CodecInterface
+	store store.StoreInterface
 }
 
 // New instantiates a new cache entry
 func New(store store.StoreInterface) *Cache {
 	return &Cache{
 		codec: codec.New(store),
+		store: store,
 	}
 }
 
@@ -92,4 +94,44 @@ func checksum(object interface{}) string {
 	hash := digester.Sum(nil)
 
 	return fmt.Sprintf("%x", hash)
+}
+
+func (c *Cache) MGet(ctx context.Context, keys interface{}) (interface{}, error) {
+	ex, ok := (c.store).(store.StoreInterfaceEx)
+	if ok {
+		return ex.MGet(ctx, keys)
+	} else {
+		ret := make([]interface{}, 0)
+		valueOfKeys := reflect.ValueOf(keys)
+		kl := valueOfKeys.Len()
+		for i := 0; i < kl; i++ {
+			key := valueOfKeys.Index(i)
+			value, err := c.codec.Get(ctx, key)
+			if err != nil {
+				return ret, err
+			}
+			ret = append(ret, value)
+		}
+		return ret, nil
+	}
+}
+
+func (c *Cache) MSet(ctx context.Context, keys, objects interface{}, options *store.Options) error {
+	ex, ok := (c.store).(store.StoreInterfaceEx)
+	if ok {
+		return ex.MSet(ctx, keys, objects, options)
+	} else {
+		valueOfKeys := reflect.ValueOf(keys)
+		valueOfObjects := reflect.ValueOf(objects)
+		kl := valueOfKeys.Len()
+		for i := 0; i < kl; i++ {
+			key := valueOfKeys.Index(i)
+			object := valueOfObjects.Index(i)
+			err := c.codec.Set(ctx, key, object, options)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
 }
