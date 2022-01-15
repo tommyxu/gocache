@@ -1,4 +1,4 @@
-module github.com/eko/gocache/v3
+module github.com/eko/gocache/v2
 
 go 1.17
 
